@@ -9,7 +9,7 @@ jest.mock('nodemailer', () => ({
   }),
 }));
 
-afterEach(() => {
+afterAll(() => {
   jest.resetAllMocks();
 });
 
