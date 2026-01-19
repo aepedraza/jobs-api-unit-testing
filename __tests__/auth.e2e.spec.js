@@ -2,13 +2,21 @@ import request from 'supertest';
 import app from '../app';
 import { connectDatabase, closeDatabase } from './db-handler';
 
-beforeAll(async () => await connectDatabase());
-
-afterAll(async () => await closeDatabase());
-
 const email = 'user@domain.com';
+const duplicated_email = 'duplicated@domain.com';
 const password = '12345678';
 const wrong_password = '1234';
+
+beforeAll(async () => {
+  await connectDatabase();
+  await request(app).post('/api/v1/register').send({
+    name: 'Test User',
+    email: duplicated_email,
+    password: password,
+  });
+});
+
+afterAll(async () => await closeDatabase());
 
 describe('[e2e] Auth', () => {
   describe('(POST) Register User', () => {
@@ -22,6 +30,17 @@ describe('[e2e] Auth', () => {
       expect(res.body.error).toBe('Please enter all values');
     });
 
+    it('should throw duplicate email error', async () => {
+      const res = await request(app).post('/api/v1/register').send({
+        name: 'Test User',
+        email: duplicated_email,
+        password: password,
+      });
+
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Duplicate email');
+    });
+
     it('should register the user', async () => {
       const res = await request(app).post('/api/v1/register').send({
         name: 'Test User',
@@ -31,17 +50,6 @@ describe('[e2e] Auth', () => {
 
       expect(res.statusCode).toBe(201);
       expect(res.body.token).toBeDefined();
-    });
-
-    it('should throw duplicate email error (depends on previous)', async () => {
-      const res = await request(app).post('/api/v1/register').send({
-        name: 'Test User',
-        email: email,
-        password: password,
-      });
-
-      expect(res.statusCode).toBe(400);
-      expect(res.body.error).toBe('Duplicate email');
     });
   });
 
